@@ -8,10 +8,23 @@ export interface DefaultCompressOptions {
 }
 
 const defaultCompressOptions: Required<DefaultCompressOptions> = {
-  maxSizeMB: 0.2,
-  maxWidthOrHeight: 1024,
+  maxSizeMB: 0.3,
+  maxWidthOrHeight: 1600,
   initialQuality: 0.8,
   useWebWorker: true,
+}
+const defaultCompressThresholdBytes = 300 * 1024
+
+export interface ImageCompressionCandidate {
+  size: number
+  width: number
+  height: number
+}
+
+export function shouldCompressImageFile(candidate: ImageCompressionCandidate) {
+  return candidate.size > defaultCompressThresholdBytes
+    || candidate.width > defaultCompressOptions.maxWidthOrHeight
+    || candidate.height > defaultCompressOptions.maxWidthOrHeight
 }
 
 function isH5Runtime() {
@@ -45,6 +58,28 @@ async function readFileFromPath(filePath: string) {
   })
 }
 
+function readImageDimensions(file: File) {
+  return new Promise<{ width: number, height: number }>((resolve, reject) => {
+    const image = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve({
+        width: image.naturalWidth || image.width,
+        height: image.naturalHeight || image.height,
+      })
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('image dimensions read failed'))
+    }
+
+    image.src = objectUrl
+  })
+}
+
 export async function compressImageWithBrowserLibrary(
   filePath: string,
   options: DefaultCompressOptions = {},
@@ -53,7 +88,8 @@ export async function compressImageWithBrowserLibrary(
     return filePath
 
   const sourceFile = await readFileFromPath(filePath)
-  if (sourceFile.size <= defaultCompressOptions.maxSizeMB * 1024 * 1024)
+  const dimensions = await readImageDimensions(sourceFile)
+  if (!shouldCompressImageFile({ size: sourceFile.size, ...dimensions }))
     return filePath
 
   const compressed = await imageCompression(sourceFile, {

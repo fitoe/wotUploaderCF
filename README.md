@@ -162,11 +162,11 @@ images.value = [{
 ```vue
 <WotUploaderCF
   v-model="images"
-  :compress-options="{ maxSizeMB: 0.2, maxWidthOrHeight: 1024, initialQuality: 0.8 }"
+  :compress-options="{ maxSizeMB: 0.3, maxWidthOrHeight: 1600, initialQuality: 0.8 }"
 />
 ```
 
-By default, H5 uploads use `browser-image-compression` when the selected image is larger than about 200KB. The default settings match the old canvas path: longest side `1024`, initial quality `0.8`, target size `0.2MB`.
+By default, H5 uploads use `browser-image-compression` only when the selected image is larger than 300KB or its longest side is larger than 1600px. The default compression target is longest side `1600`, initial quality `0.8`, target size `0.3MB`.
 
 For non-H5 runtimes, the default compressor returns the original path. You can still pass `compressImage` to override the compression pipeline; it receives the local file path and should return the path to upload.
 
@@ -185,7 +185,7 @@ For non-H5 runtimes, the default compressor returns the original path. You can s
 | `securityCheckUrl` | `string` | `''` | Optional post-upload security check URL. |
 | `openid` | `string` | `''` | Optional openid sent to the default security check. |
 | `validateImage` | `boolean` | `true` | Validate PNG/JPEG file headers before uploading. |
-| `compressOptions` | `CompressOptions` | `{ maxSizeMB: 0.2, maxWidthOrHeight: 1024, initialQuality: 0.8, useWebWorker: true }` | H5 default compression options. |
+| `compressOptions` | `CompressOptions` | `{ maxSizeMB: 0.3, maxWidthOrHeight: 1600, initialQuality: 0.8, useWebWorker: true }` | H5 default compression options. |
 | `compressImage` | `(filePath: string) => Promise<string>` | `undefined` | Optional custom compressor. Overrides the built-in H5 compression. |
 | `uploadRequest` | `UploadRequest` | `undefined` | Fully custom upload implementation. |
 | `securityCheckRequest` | `SecurityCheckRequest` | `undefined` | Fully custom post-upload check. |
