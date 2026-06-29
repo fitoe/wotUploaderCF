@@ -14,10 +14,10 @@ It wraps `wd-upload` and handles:
 ## Install
 
 ```bash
-pnpm add wot-uploader-cf wot-design-uni
+pnpm add wot-uploader-cf
 ```
 
-`vue` and `wot-design-uni` are peer dependencies. In a `uni-app` project, make sure `wot-design-uni` is already configured.
+`vue` is a peer dependency. `wot-design-uni@1.14.0` is a direct dependency because the component intentionally uses its `wd-upload` UI.
 
 ## Basic Usage
 
