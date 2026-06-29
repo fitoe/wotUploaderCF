@@ -36,9 +36,17 @@ export type UploadRequest = (context: UploadRequestContext) => Promise<Cloudflar
 export type SecurityCheckRequest = (context: SecurityCheckContext) => Promise<unknown>
 export type CompressImage = (filePath: string) => Promise<string>
 
+export interface CompressOptions {
+  maxSizeMB?: number
+  maxWidthOrHeight?: number
+  initialQuality?: number
+  useWebWorker?: boolean
+}
+
 export interface WotUploaderCFProps {
   modelValue?: WotUploaderFile[]
   maxCount?: number
+  multiple?: boolean
   variant?: 'default' | 'moments'
   uploadUrl?: string
   uploadName?: string
@@ -47,9 +55,11 @@ export interface WotUploaderCFProps {
   securityCheckUrl?: string
   openid?: string
   validateImage?: boolean
+  compressOptions?: CompressOptions
   compressImage?: CompressImage
   uploadRequest?: UploadRequest
   securityCheckRequest?: SecurityCheckRequest
+  successStatus?: number
 }
 
 export type WotUploadFileItem = UploadFileItem & {

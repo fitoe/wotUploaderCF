@@ -5,8 +5,12 @@ export function resolveImageKeyFromResponse(response: unknown): string | undefin
     return undefined
 
   if (typeof response === 'string') {
+    const text = response.trim()
+    if (text && !text.startsWith('{') && !text.startsWith('['))
+      return text
+
     try {
-      return resolveImageKeyFromResponse(JSON.parse(response))
+      return resolveImageKeyFromResponse(JSON.parse(text))
     }
     catch {
       return undefined
@@ -15,7 +19,7 @@ export function resolveImageKeyFromResponse(response: unknown): string | undefin
 
   if (typeof response === 'object') {
     const payload = response as Record<string, unknown>
-    const key = payload.key || payload.imageKey
+    const key = payload.key || payload.imageKey || payload.imageMediaId || payload.id
     return key ? String(key) : undefined
   }
 

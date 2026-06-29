@@ -4,8 +4,8 @@ import { build } from 'esbuild'
 await rm('dist/test', { recursive: true, force: true })
 await mkdir('dist/test', { recursive: true })
 await build({
-  entryPoints: ['src/core.ts'],
-  outfile: 'dist/test/core.js',
+  entryPoints: ['src/core.ts', 'src/compress.ts'],
+  outdir: 'dist/test',
   bundle: true,
   format: 'esm',
   platform: 'node',

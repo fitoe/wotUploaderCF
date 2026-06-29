@@ -55,6 +55,7 @@
     "vue": ">=3.3.0"
   },
   "dependencies": {
+    "browser-image-compression": "^2.0.2",
     "wot-design-uni": "1.14.0"
   },
   "devDependencies": {

@@ -12,12 +12,16 @@ import {
 test('resolves cloudflare image key from object or json string responses', () => {
   assert.equal(resolveImageKeyFromResponse({ key: 'abc123' }), 'abc123')
   assert.equal(resolveImageKeyFromResponse({ imageKey: 'img456' }), 'img456')
+  assert.equal(resolveImageKeyFromResponse({ imageMediaId: 'media123' }), 'media123')
+  assert.equal(resolveImageKeyFromResponse({ id: 'id456' }), 'id456')
   assert.equal(resolveImageKeyFromResponse('{"key":"json789"}'), 'json789')
-  assert.equal(resolveImageKeyFromResponse('not-json'), undefined)
+  assert.equal(resolveImageKeyFromResponse('plain-key-123'), 'plain-key-123')
+  assert.equal(resolveImageKeyFromResponse(''), undefined)
 })
 
 test('parses upload response and rejects missing keys', () => {
   assert.equal(parseUploadResponse({ key: 'abc123' }), 'abc123')
+  assert.equal(parseUploadResponse({ imageMediaId: 'media123' }), 'media123')
   assert.throws(() => parseUploadResponse('{}'), /upload response missing image key/)
 })
 

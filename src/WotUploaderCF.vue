@@ -15,11 +15,13 @@ import type {
   UploadSuccessEvent,
 } from 'wot-design-uni/components/wd-upload/types'
 import { computed, ref, watch } from 'vue'
+import { compressImageWithBrowserLibrary } from './compress'
 import { isSameUploaderFile, parseUploadResponse, toUploaderFile, toWotFile } from './core'
 
 const props = withDefaults(defineProps<WotUploaderCFProps>(), {
   modelValue: () => [],
   maxCount: 9,
+  multiple: true,
   variant: 'default',
   uploadUrl: '/r2/upload',
   uploadName: 'file',
@@ -28,9 +30,11 @@ const props = withDefaults(defineProps<WotUploaderCFProps>(), {
   securityCheckUrl: '',
   openid: '',
   validateImage: true,
-  compressImage: async (filePath: string) => filePath,
+  compressOptions: () => ({}),
+  compressImage: undefined,
   uploadRequest: undefined,
   securityCheckRequest: undefined,
+  successStatus: 200,
 })
 
 const emit = defineEmits<{
@@ -142,13 +146,15 @@ async function uploadSingleFile(file: WotUploaderFile) {
   if (!await isImageFile(file.url))
     throw new Error('file is not an image')
 
-  const compressedPath = await props.compressImage(file.url)
+  const compressedPath = props.compressImage
+    ? await props.compressImage(file.url)
+    : await compressImageWithBrowserLibrary(file.url, props.compressOptions)
   const fileInfo = await readFileInfo(compressedPath)
   const uploadFile = {
     ...file,
     url: compressedPath,
     path: compressedPath,
-    size: fileInfo.size,
+    size: fileInfo.size || file.size,
   }
   const uploadRequest = props.uploadRequest || defaultUploadRequest
   const response = await uploadRequest({
@@ -176,6 +182,7 @@ const handleWotUpload: UploadMethod = async (uploadFile, formData, options) => {
       path: uploadFile.url,
       name: uploadFile.name,
       size: uploadFile.size,
+      type: (uploadFile as WotUploadFileItem & { type?: string }).type,
       thumb: uploadFile.thumb,
       status: 'loading',
     }
@@ -183,10 +190,16 @@ const handleWotUpload: UploadMethod = async (uploadFile, formData, options) => {
     if (uploadFile.url)
       uploadedKeyByUrl.set(uploadFile.url, uploadedFile.imageKey || '')
     ;(uploadFile as WotUploadFileItem).imageKey = uploadedFile.imageKey
-    uploadFile.response = { key: uploadedFile.imageKey }
+    uploadFile.response = {
+      key: uploadedFile.imageKey,
+      imageKey: uploadedFile.imageKey,
+    }
     options.onSuccess({
-      statusCode: 201,
-      data: JSON.stringify({ key: uploadedFile.imageKey }),
+      statusCode: props.successStatus,
+      data: JSON.stringify({
+        key: uploadedFile.imageKey,
+        imageKey: uploadedFile.imageKey,
+      }),
       errMsg: 'uploadFile:ok',
     }, uploadFile, formData)
   }
@@ -235,13 +248,13 @@ function handleWotRemove(event: UploadRemoveEvent) {
   <wd-upload
     :file-list="wotFileList"
     :limit="props.maxCount"
-    :multiple="true"
+    :multiple="props.multiple"
     :auto-upload="true"
     :upload-method="handleWotUpload"
     :before-upload="handleBeforeUpload"
     :show-limit-num="props.variant !== 'moments'"
     image-mode="aspectFill"
-    :success-status="201"
+    :success-status="props.successStatus"
     @change="handleWotChange"
     @success="handleWotSuccess"
     @fail="handleWotFail"

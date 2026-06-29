@@ -5,7 +5,7 @@ A reusable `uni-app` upload component built on `wot-design-uni` for Cloudflare R
 It wraps `wd-upload` and handles:
 
 - image file validation for H5 and mini program runtimes
-- optional image compression through an injected `compressImage` function
+- H5 image compression through `browser-image-compression`, with an injected `compressImage` override when needed
 - default `uni.uploadFile` upload to a Cloudflare Worker/R2 endpoint
 - Cloudflare-style upload responses like `{ "key": "image-key" }`
 - optional async media/security check after upload
@@ -82,27 +82,48 @@ For custom APIs, pass `securityCheckRequest`.
 <script setup lang="ts">
 import type { UploadRequest } from 'wot-uploader-cf'
 
-const uploadRequest: UploadRequest = async ({ filePath }) => {
-  const result = await myUploadSdk.upload(filePath)
-  return { key: result.key }
+const uploadRequest: UploadRequest = async ({ filePath, file }) => {
+  const imageMediaId = await uploadProductImageForProduct(productId, {
+    filePath,
+    name: file.name || 'product-image',
+    type: file.type || 'application/octet-stream',
+    size: file.size || 0,
+  })
+
+  return { imageMediaId }
 }
 </script>
 
 <template>
-  <WotUploaderCF v-model="images" :upload-request="uploadRequest" />
+  <WotUploaderCF
+    v-model="images"
+    :max-count="1"
+    :multiple="false"
+    :upload-request="uploadRequest"
+  />
 </template>
 ```
+
+When `uploadRequest` is provided, the component follows the same flow as the built-in upload:
+
+- it validates the selected local image
+- it runs `compressImage(filePath)` first
+- it passes the compressed `filePath`, `name`, `size`, and `type` into your custom request
+- it skips only the default `uni.uploadFile`
+- it accepts upload results shaped as `{ key }`, `{ imageKey }`, `{ imageMediaId }`, `{ id }`, JSON strings, or a plain string id
 
 ## Optional Compression
 
 ```vue
 <WotUploaderCF
   v-model="images"
-  :compress-image="compressImage"
+  :compress-options="{ maxSizeMB: 0.2, maxWidthOrHeight: 1024, initialQuality: 0.8 }"
 />
 ```
 
-`compressImage` receives the local file path and should return the compressed local file path. By default, the component uploads the original file.
+By default, H5 uploads use `browser-image-compression` when the selected image is larger than about 200KB. The default settings match the old canvas path: longest side `1024`, initial quality `0.8`, target size `0.2MB`.
+
+For non-H5 runtimes, the default compressor returns the original path. You can still pass `compressImage` to override the compression pipeline; it receives the local file path and should return the path to upload.
 
 ## Props
 
@@ -110,6 +131,7 @@ const uploadRequest: UploadRequest = async ({ filePath }) => {
 | --- | --- | --- | --- |
 | `modelValue` | `WotUploaderFile[]` | `[]` | Uploaded file state for `v-model`. |
 | `maxCount` | `number` | `9` | Maximum image count. |
+| `multiple` | `boolean` | `true` | Whether Wot allows selecting multiple files. Use `false` for one-image product uploaders. |
 | `variant` | `'default' \| 'moments'` | `'default'` | `moments` hides the Wot limit counter. |
 | `uploadUrl` | `string` | `'/r2/upload'` | Default `uni.uploadFile` target URL. |
 | `uploadName` | `string` | `'file'` | Multipart file field name. |
@@ -118,9 +140,11 @@ const uploadRequest: UploadRequest = async ({ filePath }) => {
 | `securityCheckUrl` | `string` | `''` | Optional post-upload security check URL. |
 | `openid` | `string` | `''` | Optional openid sent to the default security check. |
 | `validateImage` | `boolean` | `true` | Validate PNG/JPEG file headers before uploading. |
-| `compressImage` | `(filePath: string) => Promise<string>` | identity | Optional compressor. |
+| `compressOptions` | `CompressOptions` | `{ maxSizeMB: 0.2, maxWidthOrHeight: 1024, initialQuality: 0.8, useWebWorker: true }` | H5 default compression options. |
+| `compressImage` | `(filePath: string) => Promise<string>` | `undefined` | Optional custom compressor. Overrides the built-in H5 compression. |
 | `uploadRequest` | `UploadRequest` | `undefined` | Fully custom upload implementation. |
 | `securityCheckRequest` | `SecurityCheckRequest` | `undefined` | Fully custom post-upload check. |
+| `successStatus` | `number` | `200` | Status passed to Wot `onSuccess` and `success-status`. |
 
 ## Events
 
