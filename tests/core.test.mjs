@@ -5,6 +5,7 @@ import {
   normalizeWotStatus,
   parseUploadResponse,
   resolveImageKeyFromResponse,
+  uploadToPresignedUrl,
   toUploaderFile,
   toWotFile,
 } from '../dist/test/core.js'
@@ -47,6 +48,45 @@ test('converts between wot upload files and public uploader files', () => {
   })
 
   assert.equal(toWotFile(file).response.key, 'r2-key-1')
+})
+
+test('passes existing image url as Wot preview thumb for edit echo', () => {
+  const file = toWotFile({
+    url: 'https://cdn.example.com/media/original.png',
+    imageKey: 'media-001',
+    status: 'success',
+  })
+
+  assert.equal(file.url, 'https://cdn.example.com/media/original.png')
+  assert.equal(file.thumb, 'https://cdn.example.com/media/original.png')
+  assert.equal(file.status, 'success')
+  assert.deepEqual(file.response, { key: 'media-001' })
+})
+
+test('uploads binary to a presigned url without app authorization and accepts empty response', async () => {
+  const calls = []
+  const response = await uploadToPresignedUrl({
+    uploadUrl: 'https://account.r2.cloudflarestorage.com/bucket/media/original.png?X-Amz-Signature=abc',
+    body: new Uint8Array([1, 2, 3]),
+    contentType: 'image/png',
+    headers: {
+      Authorization: 'Bearer app-token',
+      'Content-Type': 'application/octet-stream',
+      'x-custom': 'ok',
+    },
+    fetchImpl: async (url, init) => {
+      calls.push({ url, init })
+      return new Response('', { status: 200 })
+    },
+  })
+
+  assert.deepEqual(response, { ok: true, status: 200 })
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://account.r2.cloudflarestorage.com/bucket/media/original.png?X-Amz-Signature=abc')
+  assert.equal(calls[0].init.method, 'PUT')
+  assert.equal(calls[0].init.headers.Authorization, undefined)
+  assert.equal(calls[0].init.headers['Content-Type'], 'image/png')
+  assert.equal(calls[0].init.headers['x-custom'], 'ok')
 })
 
 test('normalizes statuses and compares uploaded files', () => {

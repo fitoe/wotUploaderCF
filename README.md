@@ -112,6 +112,51 @@ When `uploadRequest` is provided, the component follows the same flow as the bui
 - it skips only the default `uni.uploadFile`
 - it accepts upload results shaped as `{ key }`, `{ imageKey }`, `{ imageMediaId }`, `{ id }`, JSON strings, or a plain string id
 
+## Frontend Presigned R2 Upload
+
+For direct browser-to-R2 uploads, keep secrets on your API. Your app should first request a short-lived upload policy from your backend, then use `uploadToPresignedUrl` to PUT the file bytes to R2:
+
+```ts
+import { uploadToPresignedUrl, type UploadRequest } from 'wot-uploader-cf'
+
+const uploadRequest: UploadRequest = async ({ filePath, file }) => {
+  const policy = await requestUploadPolicy({
+    fileName: file.name || 'image.png',
+    mimeType: file.type || 'application/octet-stream',
+    fileSize: file.size || 0,
+  })
+
+  const body = await fetch(filePath).then(res => res.blob())
+  await uploadToPresignedUrl({
+    uploadUrl: policy.uploadUrl,
+    headers: policy.headers,
+    contentType: file.type || 'application/octet-stream',
+    body,
+  })
+
+  await confirmUpload({
+    mediaId: policy.mediaId,
+    objectKey: policy.objectKey,
+    uploadMode: policy.uploadMode,
+  })
+
+  return { imageKey: policy.mediaId }
+}
+```
+
+`uploadToPresignedUrl` intentionally removes any app `Authorization` header before PUT. R2 signed URLs authenticate through the URL signature, and adding your app bearer token can break CORS/preflight. Empty successful PUT responses are treated as success.
+
+For edit forms, pass existing files into `v-model` with their public preview URL:
+
+```ts
+images.value = [{
+  url: mediaPublicUrl,
+  thumb: mediaPublicUrl,
+  status: 'success',
+  imageKey: mediaId,
+}]
+```
+
 ## Optional Compression
 
 ```vue

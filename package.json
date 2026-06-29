@@ -1,6 +1,6 @@
 {
   "name": "wot-uploader-cf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A wot-design-uni uploader component for Cloudflare R2 style image uploads.",
   "type": "module",
   "license": "MIT",
