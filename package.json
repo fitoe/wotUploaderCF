@@ -1,0 +1,71 @@
+{
+  "name": "wot-uploader-cf",
+  "version": "0.1.0",
+  "description": "A wot-design-uni uploader component for Cloudflare R2 style image uploads.",
+  "type": "module",
+  "license": "MIT",
+  "author": "fitoe",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fitoe/wotUploaderCF.git"
+  },
+  "homepage": "https://github.com/fitoe/wotUploaderCF#readme",
+  "bugs": {
+    "url": "https://github.com/fitoe/wotUploaderCF/issues"
+  },
+  "keywords": [
+    "uni-app",
+    "wot-design-uni",
+    "cloudflare",
+    "r2",
+    "upload",
+    "uploader"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/wot-uploader-cf.umd.cjs",
+  "module": "./dist/wot-uploader-cf.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/wot-uploader-cf.js",
+      "require": "./dist/wot-uploader-cf.umd.cjs"
+    },
+    "./component": {
+      "types": "./dist/types/WotUploaderCF.vue.d.ts",
+      "import": "./src/WotUploaderCF.vue"
+    },
+    "./types": {
+      "types": "./dist/types/types.d.ts",
+      "import": "./src/types.ts"
+    }
+  },
+  "scripts": {
+    "build": "vite build && vue-tsc --emitDeclarationOnly",
+    "check": "vue-tsc --noEmit",
+    "test": "node scripts/build-test.mjs && node --test tests/*.test.mjs",
+    "prepublishOnly": "pnpm check && pnpm test && pnpm build"
+  },
+  "peerDependencies": {
+    "vue": ">=3.3.0",
+    "wot-design-uni": ">=1.10.0"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.8",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.9.3",
+    "vite": "^5.2.8",
+    "vue": "^3.5.27",
+    "vue-tsc": "^3.1.1",
+    "wot-design-uni": "^1.14.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

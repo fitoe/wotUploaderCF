@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import {
+  isSameUploaderFile,
+  normalizeWotStatus,
+  parseUploadResponse,
+  resolveImageKeyFromResponse,
+  toUploaderFile,
+  toWotFile,
+} from '../dist/test/core.js'
+
+test('resolves cloudflare image key from object or json string responses', () => {
+  assert.equal(resolveImageKeyFromResponse({ key: 'abc123' }), 'abc123')
+  assert.equal(resolveImageKeyFromResponse({ imageKey: 'img456' }), 'img456')
+  assert.equal(resolveImageKeyFromResponse('{"key":"json789"}'), 'json789')
+  assert.equal(resolveImageKeyFromResponse('not-json'), undefined)
+})
+
+test('parses upload response and rejects missing keys', () => {
+  assert.equal(parseUploadResponse({ key: 'abc123' }), 'abc123')
+  assert.throws(() => parseUploadResponse('{}'), /upload response missing image key/)
+})
+
+test('converts between wot upload files and public uploader files', () => {
+  const uploadedKeyByUrl = new Map([['blob:file-1', 'r2-key-1']])
+  const file = toUploaderFile({
+    uid: 1,
+    url: 'blob:file-1',
+    name: 'market.jpg',
+    size: 128,
+    status: 'success',
+    percent: 100,
+  }, uploadedKeyByUrl)
+
+  assert.deepEqual(file, {
+    url: 'blob:file-1',
+    path: 'blob:file-1',
+    name: 'market.jpg',
+    thumb: undefined,
+    size: 128,
+    status: 'success',
+    imageKey: 'r2-key-1',
+  })
+
+  assert.equal(toWotFile(file).response.key, 'r2-key-1')
+})
+
+test('normalizes statuses and compares uploaded files', () => {
+  assert.equal(normalizeWotStatus('loading'), 'loading')
+  assert.equal(normalizeWotStatus('unknown'), 'pending')
+  assert.equal(isSameUploaderFile({ path: 'a.jpg' }, { path: 'a.jpg' }), true)
+  assert.equal(isSameUploaderFile({ name: 'a.jpg', size: 10 }, { name: 'a.jpg', size: 10 }), true)
+  assert.equal(isSameUploaderFile({ name: 'a.jpg', size: 10 }, { name: 'b.jpg', size: 10 }), false)
+})
