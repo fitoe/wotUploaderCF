@@ -1,0 +1,68 @@
+name: Publish npm package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Read package metadata
+        id: pkg
+        shell: bash
+        run: |
+          echo "name=$(node -p 'require("./package.json").name')" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether version is already published
+        id: npm
+        shell: bash
+        run: |
+          if npm view "${{ steps.pkg.outputs.name }}@${{ steps.pkg.outputs.version }}" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify package
+        if: steps.npm.outputs.published == 'false'
+        run: pnpm run prepublishOnly
+
+      - name: Report missing npm token
+        if: steps.npm.outputs.published == 'false' && env.NODE_AUTH_TOKEN == ''
+        run: |
+          echo "NPM_TOKEN is not configured. Add an npm automation token to GitHub repository secrets, then rerun this workflow." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to npm
+        if: steps.npm.outputs.published == 'false' && env.NODE_AUTH_TOKEN != ''
+        run: npm publish --provenance
